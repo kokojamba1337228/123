@@ -1,0 +1,448 @@
+{% load static %}
+{% load django_bootstrap5 %}
+
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="{% static 'properties/fontawesome/css/all.min.css' %}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'properties/scss/home.scss' %}" />
+    <title>Доступные объявления</title>
+</head>
+
+<body>
+    {% include 'properties/elements/header.html' %}
+
+    <div class="container">
+        <div class="search-and-filter-area">
+            <div class="search-container">
+                <form method="get" action="{% url 'home_page' %}" class="search-form" id="searchForm">
+                    <input
+                        type="text"
+                        name="query"
+                        class="search-input"
+                        placeholder="Поиск по названию"
+                        value="{{ query|default:'' }}"
+                    />
+                    <button type="submit" class="search-button">Искать</button>
+                </form>
+
+                <div class="filter-container">
+                    <button id="filter-btn" class="filter-button">Фильтры</button>
+                    <div id="filter-menu" class="filter-menu" style="display: none;">
+                        <form method="get" action="{% url 'home_page' %}" class="filter-form">
+                            <div class="filter-item">
+                                <label for="price-min">Цена от:</label>
+                                <input
+                                    type="range"
+                                    name="price_min"
+                                    id="price-min"
+                                    class="filter-input"
+                                    min="0"
+                                    max="{{ max_price }}"
+                                    value="{{ price_min|default:0 }}"
+                                    step="1"
+                                    oninput="updatePriceDisplay()"
+                                />
+                                <span id="price-min-display">{{ price_min|default:"0" }}</span> BYN
+                            </div>
+                            <div class="filter-item">
+                                <label for="price-max">Цена до:</label>
+                                <input
+                                    type="range"
+                                    name="price_max"
+                                    id="price-max"
+                                    class="filter-input"
+                                    min="0"
+                                    max="{{ max_price }}"
+                                    value="{{ price_max|default:max_price }}"
+                                    step="1"
+                                    oninput="updatePriceDisplay()"
+                                />
+                                <span id="price-max-display">{{ price_max|default:max_price }}</span> BYN
+                            </div>
+                            <div class="filter-item">
+                                <label for="sorting">Сортировать по:</label>
+                                <select name="order_by">
+                                    <option value="" {% if order_by == '' %}selected{% endif %}>По умолчанию</option>
+                                    <option value="price_asc" {% if order_by == 'price_asc' %}selected{% endif %}>По возрастанию</option>
+                                    <option value="price_desc" {% if order_by == 'price_desc' %}selected{% endif %}>По убыванию</option>
+                                </select>
+                            </div>
+                            {% for key, value_list in request.GET.items %}
+                                {% if key != 'tags' and key != 'page' %}
+                                    {% if value_list is iterable and not value_list is string %}
+                                        {% for val in value_list %}
+                                            <input type="hidden" name="{{ key }}" value="{{ val }}" />
+                                        {% endfor %}
+                                    {% else %}
+                                        <input type="hidden" name="{{ key }}" value="{{ value_list }}" />
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                            <button type="button" class="reset-all-filters-except-tags-btn" id="resetAllFiltersExceptTagsBtn">Сбросить фильтры</button>
+                            <button type="submit" class="filter-submit">Применить фильтры</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2>Доступная недвижимость</h2>
+        <div class="main-content-wrapper">
+            <div class="tags-filter-panel">
+                <h4>Фильтр по тегам</h4>
+                <form id="tagsFilterForm" method="get" action="{% url 'home_page' %}">
+                    {% for key, value_list in request.GET.items %}
+                        {% if key != 'tags' and key != 'page' %}
+                            {% if value_list is iterable and not value_list is string %}
+                                {% for val in value_list %}
+                                    <input type="hidden" name="{{ key }}" value="{{ val }}" />
+                                {% endfor %}
+                            {% else %}
+                                <input type="hidden" name="{{ key }}" value="{{ value_list }}" />
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% for category, tags_list in grouped_tags.items %}
+                        <div class="tag-category">
+                            <h5>{{ category }}</h5>
+                            {% for tag in tags_list %}
+                            <div>
+                                <input
+                                    type="checkbox"
+                                    id="tag_{{ tag.id }}"
+                                    name="tags"
+                                    value="{{ tag.id }}"
+                                    {% if tag.id in selected_tags %}checked{% endif %}
+                                >
+                                <label for="tag_{{ tag.id }}">{{ tag.name }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                    <button type="button" class="reset-tags-btn" id="resetTagsBtn">Сбросить теги</button>
+                    <button type="submit" class="apply-tags-filter-btn">Применить теги</button>
+                </form>
+            </div>
+
+            <div class="property-list">
+                {% csrf_token %}
+                {% for property in page_obj %}
+                {% if property.approved %}
+                <div class="property-card" data-property-id="{{ property.id }}">
+                    <a href="{% url 'property_detail' property.id %}" class="property-link">
+                        <div class="property-image-container">
+                            {% if property.images.all %}
+                            <img src="{{ property.images.first.image.url }}" alt="Property Image" class="property-image" />
+                            {% else %}
+                            <img src="{% static 'properties/images/default.jpg' %}" alt="No Image Available" class="property-image" />
+                            {% endif %}
+                        </div>
+                    </a>
+                    <div class="favorite-btn-wrapper">
+                        <i
+                        class="favorite-btn fa-heart {% if property.id in favorite_properties %}fas{% else %}far{% endif %}"
+                        onclick="toggleFavorite({{ property.id }}, this)"
+                    ></i>
+                    </div>
+                    <a href="{% url 'property_detail' property.id %}" class="property-link">
+                        <p class="title">{{ property.title }}</p>
+                        <p class="price"><strong>Цена:</strong> {{ property.price }} BYN</p>
+                        <p><strong>Адрес:</strong> {{ property.location }}</p>
+                        <p><strong>Площадь:</strong> {{ property.size }} м²</p>
+                        <p>{{ property.description }}</p>
+                    </a>
+                    <div class="property-tags">
+                        {% for tag in property.tags.all %}
+                        <span class="tag" data-tag-id="{{ tag.id }}">{{ tag.name }}</span>
+                        {% empty %}
+                        <span class="no-tags"></span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                {% empty %}
+                <p>Нет доступных объектов недвижимости</p>
+                {% endfor %}
+            </div>
+        </div>
+
+    <button class="support-btn"><i class="fas fa-comments"></i></button>
+
+    <div class="support-chat-dropdown" id="support-chat-dropdown" style="display: none;">
+        <div class="chat-header">
+            <strong>Поддержка</strong>
+            <button id="chat-close-btn" title="Закрыть">×</button>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-container">
+            <textarea id="chat-input" placeholder="Введите сообщение..."></textarea>
+            <button id="chat-send-btn">➤</button>
+        </div>
+    </div>
+
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page=1{% if query_string %}&{{ query_string }}{% endif %}">&laquo; Первая</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">Предыдущая</a>
+        {% endif %}
+
+        <span>Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">Следующая</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if query_string %}&{{ query_string }}{% endif %}">Последняя &raquo;</a>
+        {% endif %}
+    </div>
+    {% include 'properties/elements/footer.html' %}
+
+    <script>
+      // --- Start of Favorite Toggle JavaScript ---
+      // Define in global scope so onclick can find it
+      function toggleFavorite(propertyId, iconElement) {
+          fetch("{% url 'toggle_favorite_api' 0 %}".replace('0', propertyId), { // Corrected URL to dedicated API endpoint
+              method: "POST",
+              headers: {
+                  "Content-Type": "application/json",
+                  "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value
+              },
+          })
+          .then(response => {
+              if (!response.ok) {
+                  if (response.status === 403) {
+                      alert("Пожалуйста, войдите в систему, чтобы использовать избранное.");
+                      throw new Error('Unauthenticated');
+                  }
+                  throw new Error(`Server responded with status ${response.status}`);
+              }
+              return response.json();
+          })
+          .then(data => {
+              if (data.status === "added") {
+                  iconElement.classList.remove("far");
+                  iconElement.classList.add("fas");
+              } else if (data.status === "removed") {
+                  iconElement.classList.remove("fas");
+                  iconElement.classList.add("far");
+              }
+          })
+          .catch(error => {
+              console.error("Ошибка при добавлении в избранное:", error);
+              if (error.message !== 'Unauthenticated') {
+                  alert("Произошла ошибка при обработке избранного. Пожалуйста, попробуйте снова.");
+              }
+          });
+      }
+      // --- End of Favorite Toggle JavaScript ---
+
+
+      document.addEventListener('DOMContentLoaded', function() {
+        const filterButton = document.getElementById('filter-btn');
+        const filterMenu = document.getElementById('filter-menu');
+        const searchForm = document.getElementById('searchForm');
+
+        const resetAllFiltersExceptTagsBtn = document.getElementById('resetAllFiltersExceptTagsBtn');
+        const resetTagsBtn = document.getElementById('resetTagsBtn');
+        const tagsFilterForm = document.getElementById('tagsFilterForm');
+
+        const priceMinInput = document.getElementById('price-min');
+        const priceMaxInput = document.getElementById('price-max');
+        const priceMinDisplay = document.getElementById('price-min-display');
+        const priceMaxDisplay = document.getElementById('price-max-display');
+
+        function updatePriceDisplay() {
+            if (priceMinInput && priceMinDisplay) {
+                priceMinDisplay.textContent = new Intl.NumberFormat('ru-RU').format(priceMinInput.value);
+            }
+            if (priceMaxInput && priceMaxDisplay) {
+                priceMaxDisplay.textContent = new Intl.NumberFormat('ru-RU').format(priceMaxInput.value);
+            }
+        }
+        updatePriceDisplay();
+        if (priceMinInput) priceMinInput.addEventListener('input', updatePriceDisplay);
+        if (priceMaxInput) priceMaxInput.addEventListener('input', updatePriceDisplay);
+
+        if (filterButton && filterMenu) {
+            filterButton.addEventListener('click', function(event) {
+                event.stopPropagation();
+                filterMenu.style.display = filterMenu.style.display === 'block' ? 'none' : 'block';
+            });
+
+            document.addEventListener('click', function(event) {
+                if (!filterMenu.contains(event.target) && !filterButton.contains(event.target)) {
+                    filterMenu.style.display = 'none';
+                }
+            });
+
+            filterMenu.addEventListener('click', function(event) {
+                event.stopPropagation();
+            });
+        }
+
+        if (resetAllFiltersExceptTagsBtn) {
+            resetAllFiltersExceptTagsBtn.addEventListener('click', function(event) {
+                event.preventDefault();
+
+                const textInputs = filterMenu.querySelectorAll('input[type="text"]');
+                textInputs.forEach(input => {
+                    input.value = '';
+                });
+
+                const rangeInputs = filterMenu.querySelectorAll('input[type="range"]');
+                rangeInputs.forEach(input => {
+                    input.value = input.min;
+                });
+                updatePriceDisplay();
+
+                const selectInputs = filterMenu.querySelectorAll('select');
+                selectInputs.forEach(select => {
+                    select.value = '';
+                });
+
+                const currentUrl = new URL(window.location.href);
+                const paramsToKeep = new URLSearchParams();
+
+                currentUrl.searchParams.forEach((value, key) => {
+                    if (key === 'tags') {
+                        paramsToKeep.append(key, value);
+                    }
+                });
+
+                const newUrl = `${currentUrl.origin}${currentUrl.pathname}?${paramsToKeep.toString()}`;
+                window.location.href = newUrl;
+            });
+        }
+
+        if (resetTagsBtn) {
+            resetTagsBtn.addEventListener('click', function(event) {
+                event.preventDefault();
+
+                const checkboxes = tagsFilterForm.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+
+                const currentUrl = new URL(window.location.href);
+                const paramsToKeep = new URLSearchParams();
+
+                currentUrl.searchParams.forEach((value, key) => {
+                    if (key !== 'tags') {
+                        paramsToKeep.append(key, value);
+                    }
+                });
+
+                const newUrl = `${currentUrl.origin}${currentUrl.pathname}?${paramsToKeep.toString()}`;
+                window.location.href = newUrl;
+            });
+        }
+
+        if (searchForm) {
+            searchForm.addEventListener('submit', function(event) {
+            });
+        }
+
+        const supportBtn = document.querySelector('.support-btn');
+        const dropdown = document.getElementById('support-chat-dropdown');
+        const closeBtn = document.getElementById('chat-close-btn');
+        const messagesBox = document.getElementById('chat-messages');
+        const inputBox = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('chat-send-btn');
+
+        supportBtn.addEventListener('click', () => {
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+            } else {
+                dropdown.style.display = 'block';
+                fetchMessages();
+            }
+        });
+
+        closeBtn.addEventListener('click', () => {
+            dropdown.style.display = 'none';
+        });
+
+        function getCSRFToken() {
+            let token = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (token) {
+                return token.value;
+            }
+            return '';
+        }
+
+        function fetchMessages() {
+            fetch('{% url "get_support_messages" %}')
+                .then(res => {
+                    if (!res.ok) {
+                        if (res.status === 403) {
+                            throw new Error('Не авторизован. Пожалуйста, войдите, чтобы просматривать сообщения поддержки.');
+                        }
+                        throw new Error('Ошибка при загрузке сообщений');
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    messagesBox.innerHTML = '';
+                    data.messages.forEach(msg => {
+                        const el = document.createElement('div');
+                        el.classList.add('chat-message');
+
+                        const avatar = document.createElement('img');
+                        avatar.src = msg.sender_avatar || '{% static "properties/images/default-avatar.png" %}';
+                        avatar.classList.add('chat-avatar');
+
+                        const content = document.createElement('div');
+                        content.classList.add('chat-message-content');
+                        content.textContent = msg.sender__first_name + ': ' + msg.content;
+
+                        el.appendChild(avatar);
+                        el.appendChild(content);
+                        messagesBox.appendChild(el);
+                    });
+                    messagesBox.scrollTop = messagesBox.scrollHeight;
+                })
+                .catch(error => {
+                    console.error("Ошибка при получении сообщений поддержки:", error);
+                    messagesBox.innerHTML = `<div style="color: red; text-align: center;">${error.message}</div>`;
+                });
+        }
+
+        sendBtn.addEventListener('click', () => {
+            const content = inputBox.value.trim();
+            if (!content) return;
+        fetch('{% url "send_support_message" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+            },
+            body: JSON.stringify({ content }),
+            })
+        .then(res => {
+            if (!res.ok) {
+                if (res.status === 403) {
+                    alert('Для отправки сообщений необходимо войти в систему.');
+                    throw new Error('Не авторизован');
+                }
+                throw new Error('Ошибка отправки сообщения');
+            }
+            return res.json();
+        })
+        .then(data => {
+            inputBox.value = '';
+            fetchMessages();
+        })
+            .catch(error => {
+                console.error("Ошибка при отправке сообщения:", error);
+                alert("Произошла ошибка при отправке сообщения. Пожалуйста, попробуйте снова.");
+            });
+        });
+    });
+</script>
+</body>
+</html>

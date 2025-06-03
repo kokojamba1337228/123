@@ -1,0 +1,187 @@
+{% load static %}
+{% load django_bootstrap5 %}
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'properties/fontawesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'properties/scss/add_property.scss' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="{% static 'properties/scss/footer.scss' %}">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <title>Ваше объявление</title>
+</head>
+
+<body>
+    {% include 'properties/elements/header.html' %}
+
+    <div class="container">
+        {% if messages %}
+        <div class="alert-messages">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <h2>Ваше объявление</h2>
+
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-group">
+                <i class="fas fa-heading form-icon"></i>
+                <input type="text" id="id_title" name="title" placeholder=" " required>
+                <label for="id_title" class="label-placeholder">Заголовок</label>
+            </div>
+
+            <div class="form-group">
+                <i class="fas fa-align-left form-icon-des"></i>
+                <textarea id="id_description" name="description" rows="4" placeholder=" "></textarea>
+                <label for="id_description" class="label-placeholder">Описание</label>
+            </div>
+
+            <div class="form-group">
+                <i class="fas fa-dollar-sign form-icon"></i>
+                <input type="number" id="id_price" min="1" max="999999999" name="price" step="1" placeholder=" ">
+                <label for="id_price" class="label-placeholder">Цена</label>
+            </div>
+
+            <div class="form-group">
+                <i class="fas fa-map-marker-alt form-icon"></i>
+                <input type="text" id="id_location" name="location" placeholder=" ">
+                <label for="id_location" class="label-placeholder">Адрес</label>
+            </div>
+
+            <div class="form-group">
+                <i class="fas fa-ruler-combined form-icon"></i>
+                <input type="number" id="id_size" min="1" max="999999" name="size" step="0.1" placeholder=" ">
+                <label for="id_size" class="label-placeholder">Площадь</label>
+            </div>
+            <p class="picture">Изображения</p>
+
+            <div class="form-group">
+                <div id="imagePreviewContainer" class="image-preview-container">
+                    <div id="uploadPlaceholder" class="upload-placeholder">
+                        <input type="file" id="id_images" name="images" accept="image/*" multiple>
+                        <i class="fas fa-plus"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="picture" style="margin-top: 20px;">Теги</p>
+            <div class="form-group tags">
+                {# form.tags - это ModelMultipleChoiceField #}
+                {% for checkbox in form.tags %}
+                    <div>
+                        {{ checkbox.tag }} {{ checkbox.choice_label }}
+                    </div>
+                {% endfor %}
+            </div>
+            <button type="submit" class="btn btn-primary mt-3">Подать объявление</button>
+        </form>
+    </div>
+    {% include 'properties/elements/footer.html' %} 
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadInput = document.getElementById('id_images');
+            const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+            const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+        
+            uploadInput.addEventListener('change', function (event) {
+                const files = Array.from(event.target.files);
+                const currentPreviewsCount = imagePreviewContainer.querySelectorAll('.image-preview').length;
+            
+                if (currentPreviewsCount + files.length > 10) {
+                    alert('Максимум 10 изображений.');
+                    event.target.value = ''; 
+                    return;
+                }
+            
+                files.forEach((file) => {
+                    const reader = new FileReader();
+            
+                    reader.onload = function (e) {
+                        const div = document.createElement('div');
+                        div.classList.add('image-preview');
+            
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.alt = 'Предварительный просмотр нового изображения';
+            
+                        const removeButton = document.createElement('button');
+                        removeButton.type = 'button'; 
+                        removeButton.classList.add('remove-button');
+                        removeButton.innerHTML = '&times;';
+                        removeButton.onclick = function () {
+                            div.remove();
+                            adjustPlaceholder();
+                        };
+            
+                        imagePreviewContainer.insertBefore(div, uploadPlaceholder); 
+                        div.appendChild(img);
+                        div.appendChild(removeButton);
+                        adjustPlaceholder();
+                    };
+            
+                    reader.readAsDataURL(file);
+                });
+            });
+            
+            function adjustPlaceholder() {
+                const previews = imagePreviewContainer.querySelectorAll('.image-preview').length;
+            
+                if (previews >= 10) {
+                    uploadPlaceholder.style.display = 'none';
+                } else {
+                    uploadPlaceholder.style.display = 'flex';
+                }
+            }
+
+            adjustPlaceholder();
+
+            const priceInput = document.getElementById('id_price');
+            const sizeInput = document.getElementById('id_size');
+
+            function enforceMinMax(inputElement) {
+                let value = parseFloat(inputElement.value);
+                const min = parseFloat(inputElement.min);
+                const max = parseFloat(inputElement.max);
+
+                if (isNaN(value)) {
+                    return;
+                }
+
+                if (value < min) {
+                    inputElement.value = min;
+                } else if (value > max) {
+                    inputElement.value = max;
+                }
+            }
+
+            priceInput.addEventListener('input', function() {
+                enforceMinMax(this);
+            });
+
+            sizeInput.addEventListener('input', function() {
+                enforceMinMax(this);
+            });
+
+            priceInput.addEventListener('blur', function() {
+                enforceMinMax(this);
+            });
+
+            sizeInput.addEventListener('blur', function() {
+                enforceMinMax(this);
+            });
+        });
+    </script>
+
+</body>
+
+</html>

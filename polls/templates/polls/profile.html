@@ -1,0 +1,188 @@
+{% load static %}
+{% load django_bootstrap5 %}
+
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'polls/fontawesome/css/all.min.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'polls/scss/user_profile.scss' %}">
+    <title>Профиль пользователя</title>
+</head>
+
+<body>
+    {% include 'properties/elements/header.html' %}
+    <div class="container">
+        <h2>Ваш профиль</h2>
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+        </form>
+
+        <div class="tabs">
+            <div id="favorites-tab" class="tab active-tab" onclick="showSection('favorites')">
+                Понравившиеся
+            </div>
+            <div class="vertical-divider"></div>
+            <div id="my-ads-tab" class="tab" onclick="showSection('my-ads')">
+                Мои объявления
+            </div>
+        </div>
+
+        <hr>
+        
+        <div id="favorites-section" class="tab-content active">
+            <div class="property-list">
+                {% for property in favorite_properties %}
+                <div class="property-card" data-property-id="{{ property.id }}">
+                    <a href="{% url 'property_detail' property.id %}" class="property-link">
+                        <div class="property-image-container">
+                            {% if property.images.all %}
+                                <img src="{{ property.images.first.image.url }}" alt="Property Image" class="property-image">
+                            {% else %}
+                                <img src="{% static 'properties/images/default.jpg' %}" alt="No Image Available" class="property-image">
+                            {% endif %}
+                        </div>
+                    </a>
+                    <div class="favorite-btn-wrapper">
+                            <i class="delete-favorite-btn fa-solid fa-heart-crack" onclick="confirmDeleteFavorite({{ property.id }})"></i> 
+                    </div>
+                    <a href="{% url 'property_detail' property.id %}" class="property-link">
+                        <h4 class="title">{{ property.title }}</h4>
+                        <p><strong>Цена:</strong> ${{ property.price }}</p>
+                        <p><strong>Адрес:</strong> {{ property.location }}</p>
+                        <p><strong>Площадь:</strong> {{ property.size }} м²</p>
+                        <p>{{ property.description|truncatewords:20 }}</p>
+                    </a>
+                </div>
+                {% empty %}
+                    <p>Нет понравившихся предложений.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div id="my-ads-section" class="tab-content" style="display: none;">
+            <div class="property-list">
+                {% for property in user_properties %}
+                <div class="property-card" data-property-id="{{ property.id }}">
+                    <a href="{% url 'property_detail' property.id %}" class="property-link">
+                        <div class="property-image-container">
+                            {% if property.images.all %}
+                                <img src="{{ property.images.first.image.url }}" alt="Property Image" class="property-image">
+                            {% else %}
+                                <img src="{% static 'properties/images/default.jpg' %}" alt="No Image Available" class="property-image">
+                            {% endif %}
+                        </div>
+                    </a>
+                    <div class="delete-btn-wrapper">
+                            <i class="delete-property-btn fa-solid fa-trash" onclick="confirmDeleteProperty({{ property.id }})"></i>
+                            <i class="delete-property-btn fa-solid fa-pencil-alt" onclick="redirectToUpdatePage({{ property.id }})"></i>
+                    </div>
+                    <a href="{% url 'property_detail' property.id %}" class="property-link">
+                        <p class="title">{{ property.title }}</p>
+                        <p><strong>Цена:</strong> ${{ property.price }}</p>
+                        <p><strong>Адрес:</strong> {{ property.location }}</p>
+                        <p><strong>Площадь:</strong> {{ property.size }} м²</p>
+                        <p>{{ property.description|truncatewords:20 }}</p>
+                    </a>
+                </div>
+                {% empty %}
+                    <p>У вас пока нет объявлений.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+    <footer>
+        {% include 'properties/elements/footer.html' %}
+    </footer>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const savedTab = localStorage.getItem('selectedTab') || 'favorites';
+            showSection(savedTab);
+        });
+
+        function confirmDeleteFavorite(propertyId) {
+            if (confirm("Вы уверены, что хотите удалить это объявление из ибранных?")) {
+                deleteFavorite(propertyId);
+            }
+        }
+
+        function deleteFavorite(propertyId) {
+            fetch('{% url "delete_favorite" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: JSON.stringify({ property_id: propertyId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'removed') {
+                    const propertyCard = document.querySelector(`.property-card[data-property-id="${propertyId}"]`);
+                    propertyCard.remove();
+                    location.reload();
+
+                }
+            });
+        }
+
+        function confirmDeleteProperty(propertyId) {
+            if (confirm("Вы уверены, что хотите удалить это объявление?")) {
+                deleteProperty(propertyId);
+            }
+        }
+
+        function deleteProperty(propertyId) {
+            fetch('{% url "delete_property" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: JSON.stringify({ property_id: propertyId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'deleted') {
+                    const propertyCard = document.querySelector(`.property-card[data-property-id="${propertyId}"]`);
+                    propertyCard.remove();
+                    location.reload();
+                }
+            });
+        }
+
+        function redirectToUpdatePage(propertyId) {
+            window.location.href = `/properties/update/${propertyId}/`;
+        }
+
+        function showSection(section) {
+            const favoritesTab = document.getElementById('favorites-tab');
+            const myAdsTab = document.getElementById('my-ads-tab');
+            const favoritesSection = document.getElementById('favorites-section');
+            const myAdsSection = document.getElementById('my-ads-section');
+            
+            localStorage.setItem('selectedTab', section);
+
+            if (section === 'favorites') {
+                favoritesTab.classList.add('active-tab');
+                myAdsTab.classList.remove('active-tab');
+                favoritesSection.style.display = 'block';
+                myAdsSection.style.display = 'none';
+            } else {
+                myAdsTab.classList.add('active-tab');
+                favoritesTab.classList.remove('active-tab');
+                myAdsSection.style.display = 'block';
+                favoritesSection.style.display = 'none';
+            }
+        }
+    </script>
+
+</body>
+</html>

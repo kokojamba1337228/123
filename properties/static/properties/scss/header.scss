@@ -1,0 +1,157 @@
+body {
+    margin: 0;
+    font-family: 'Montserrat', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between  ;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    position: fixed;
+    justify-content: space-between;
+    padding: 10px 40px;
+    width: 80%;
+    top: 0;
+    z-index: 1000;
+    background-color: #f1f1f1;
+    box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
+}
+
+.header::before,
+.header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 40px;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.header::before {
+  left: 0;
+  background: linear-gradient(to right, #f1f1f1 0%, transparent 100%);
+}
+
+.header::after {
+  right: 0;
+  background: linear-gradient(to left, #f1f1f1 0%, transparent 100%);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.logo {
+    display: flex;
+    text-decoration: none;
+    align-items: center;
+    font-size: 24px;
+    font-weight: 500;
+}
+
+.logo i {
+    margin-right: 8px; 
+    color: #e63946;
+}
+
+.logo a {
+    text-decoration: none; 
+    color: #000;           
+}
+
+.nav {
+    flex-grow: 1;
+}
+
+.nav ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center; 
+}
+
+.nav ul li {
+    margin: 0 15px;
+    transition: all .20s;
+    border-radius: 10px;
+    padding: 10px ;
+    
+}
+
+.nav ul li:hover {
+    transition: all .20s;
+    background-color: #e7e7e7; 
+    
+}
+
+.nav a {
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+}
+
+.auth-buttons {
+    display: flex;
+    align-items: center;
+}
+
+.auth-buttons a {
+    font-weight: bold;
+    text-decoration: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-left: 10px;
+}
+
+.log-out{
+    transition: all .20s;
+    color: #3d3d3d;
+    background-color: #e2e2e2;
+
+}
+
+.log-out:hover{
+    background-color: #c9c9c9; 
+    transition: all .20s linear;
+}
+
+.sign-in {
+    transition: all .20s;
+    color: #3d3d3d
+}
+
+.join {
+    transition: all .20s;
+    color: #ffffff;
+    background-color: #e63946;
+}
+
+.join:hover {
+    background-color: #da2929; 
+    transition: all .20s linear;
+
+}
+
+.sign-in:hover {
+    background-color: #e7e7e7; 
+    transition: all .20s linear;
+
+}
+
+button:hover {
+    background-color: #da2929;
+}
+
+@media (max-width: 768px) {
+    .header, .container {
+        width: 100%;
+        padding: 0 10px;
+    }
+}

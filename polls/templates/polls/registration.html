@@ -1,0 +1,136 @@
+{% load static %}
+{% load django_bootstrap5 %}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация</title>
+    <link rel="stylesheet" href="{% static 'polls/fontawesome/css/all.min.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static "polls/scss/style.scss" %}">
+</head>
+<body>
+    <div class="registration-container">
+        <h2>Регистрация</h2>
+
+        {% if messages %}
+        <div class="alert-messages">
+            {% for message in messages %}
+                <div class="alert">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form id="registrationForm" method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+                <i class="fas fa-user form-icon"></i>
+                <input type="text" id="id_first_name" name="first_name" required placeholder=" " value="{{ request.POST.first_name|default:'' }}">
+                <label for="id_first_name" class="label-placeholder">Имя</label>
+            </div>
+            <div class="form-group">
+                <i class="fas fa-user form-icon"></i>
+                <input type="text" id="id_last_name" name="last_name" required placeholder=" " value="{{ request.POST.last_name|default:'' }}">
+                <label for="id_last_name" class="label-placeholder">Фамилия</label>
+            </div>
+            <div class="form-group">
+                <i class="fas fa-phone form-icon"></i>
+                <input type="tel" id="id_phone_number" name="phone_number" required value="{{ request.POST.phone_number|default:'+375' }}">
+                <label for="id_phone_number" class="label-placeholder">Номер телефона</label>
+            </div>
+            <div class="form-group">
+                <i class="fas fa-envelope form-icon"></i>
+                <input type="email" id="id_email" name="email" required placeholder=" " value="{{ request.POST.email|default:'' }}">
+                <label for="id_email" class="label-placeholder">Электронная почта</label>
+            </div>
+            <div class="form-group">
+                <i class="fas fa-lock form-icon"></i>
+                <input type="password" id="id_password" name="password" required placeholder=" ">
+                <label for="id_password" class="label-placeholder">Пароль</label>
+                <i class="fas fa-eye password-toggle" id="showPasswordIcon"></i>
+            </div>
+            <div class="form-group">
+                <i class="fas fa-lock form-icon"></i>
+                <input type="password" id="id_confirm_password" name="confirm_password" required placeholder=" ">
+                <label for="id_confirm_password" class="label-placeholder">Подтверждение пароля</label>
+                <i class="fas fa-eye password-toggle" id="showConfirmPasswordIcon"></i>
+            </div>
+            
+            <div>
+                Есть аккаунт? <a class="login" href="{% url 'login' %}"> Войти</a>
+            </div>
+            <button type="submit" id="submitBtn">Зарегистрироваться</button>
+        </form>
+        
+    </div>
+    <script src="https://unpkg.com/imask"></script>
+    <script>
+        function validatePasswordMatch() {
+            const passwordField = document.getElementById('id_password');
+            const confirmPasswordField = document.getElementById('id_confirm_password');
+            if (confirmPasswordField.value !== passwordField.value) {
+                confirmPasswordField.setCustomValidity('Пароли не совпадают');
+            } else {
+                confirmPasswordField.setCustomValidity('');
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const element = document.getElementById('id_phone_number');
+            if (element) {
+                IMask(element, { mask: '+{375}(00)000-00-00' });
+            }
+        
+            const emailField = document.getElementById('id_email');
+            if (emailField) {
+                emailField.addEventListener('input', function () {
+                    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailPattern.test(this.value)) {
+                        this.setCustomValidity('Проверьте введенный email');
+                    } else {
+                        this.setCustomValidity('');
+                    }
+                });
+            }
+        
+            const passwordField = document.getElementById('id_password');
+            const confirmPasswordField = document.getElementById('id_confirm_password');
+            if (passwordField && confirmPasswordField) {
+                passwordField.addEventListener('input', validatePasswordMatch);
+                confirmPasswordField.addEventListener('input', validatePasswordMatch);
+            }
+        
+            const showPasswordIcon = document.getElementById('showPasswordIcon');
+            if (showPasswordIcon) {
+                showPasswordIcon.addEventListener('click', function () {
+                    const passwordField = document.getElementById('id_password');
+                    if (passwordField.type === 'password') {
+                        passwordField.type = 'text';
+                        this.classList.add('active');
+                    } else {
+                        passwordField.type = 'password';
+                        this.classList.remove('active');
+                    }
+                });
+            }
+        
+            const showConfirmPasswordIcon = document.getElementById('showConfirmPasswordIcon');
+            if (showConfirmPasswordIcon) {
+                showConfirmPasswordIcon.addEventListener('click', function () {
+                    const confirmPasswordField = document.getElementById('id_confirm_password');
+                    if (confirmPasswordField.type === 'password') {
+                        confirmPasswordField.type = 'text';
+                        this.classList.add('active');
+                    } else {
+                        confirmPasswordField.type = 'password';
+                        this.classList.remove('active');
+                    }
+                });
+            }
+        });
+        
+    </script>
+</body>
+</html>

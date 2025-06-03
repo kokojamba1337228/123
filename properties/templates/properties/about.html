@@ -1,0 +1,42 @@
+{% load static %}
+{% load django_bootstrap5 %}
+
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'properties/fontawesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'properties/scss/about.scss' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    {% include 'properties/elements/header.html' %}
+
+    <div class="about-container">
+        <h1>О нас</h1>
+        <p>Мы — ведущая платформа по поиску недвижимости, стремимся предоставить лучшие предложения для вас.</p>
+
+        <h2>Наша миссия</h2>
+        <p>Мы стремимся сделать поиск недвижимости простым и доступным для каждого.</p>
+
+        <h2>Наша команда</h2>
+        <p>У нас опытная команда профессионалов, которые всегда готовы помочь вам найти подходящее жилье.</p>
+
+        <h2>Почему выбирают нас</h2>
+        <ul>
+            <li>Обширная база объектов недвижимости</li>
+            <li>Простота использования платформы</li>
+            <li>Поддержка пользователей на каждом этапе</li>
+        </ul>
+
+        <h2>Свяжитесь с нами</h2>
+        <p>Для любых вопросов пишите на: <a href="mailto:support@example.com">support@example.com</a></p>
+    </div>
+
+</body>
+{% include 'properties/elements/footer.html' %}
+
+</html>

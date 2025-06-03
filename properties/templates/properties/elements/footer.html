@@ -1,0 +1,45 @@
+{%load static%}
+{% load django_bootstrap5 %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'properties/fontawesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'properties/scss/footer.scss' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-section about">
+            <h3>О компании</h3>
+            <p>Мы предлагаем лучшие предложения по недвижимости. Наши специалисты готовы помочь вам найти идеальный дом или инвестиционную недвижимость.</p>
+        </div>
+        <div class="footer-section links">
+            <h3>Ссылки</h3>
+            <ul>
+                <li><a href="{% url 'home_page' %}">Главная</a></li>
+                <li><a href="{% url 'about_us' %}">О нас</a></li>
+                <li><a href="{% url 'add_property' %}">Продать</a></li>
+            </ul>
+        </div>
+        <div class="footer-section contact">
+            <h3>Контакты</h3>
+            <p><i class="fas fa-phone"></i> +375 29 123 4567</p>
+            <p><i class="fas fa-envelope"></i> info@realestate.com</p>
+            <p><i class="fas fa-map-marker-alt"></i> Минск, Беларусь</p>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; 2024 RealEstate | Все права защищены</p>
+    </div>
+</footer>
+</body>

@@ -1,0 +1,58 @@
+{% load static %}
+{% load django_bootstrap5 %}
+
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'chat/fontawesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'chat/scss/chat_list.scss' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <title>Чаты</title>
+</head>
+<body>
+{% include 'properties/elements/header.html' %}
+<div class="chat-list-container">
+    <h2 style="margin-top: 10px; margin-bottom: 20px;">Ваши чаты</h2>
+    {% for chat_item in chats %}
+    <a href="{% url 'chat_detail' chat_item.chat.id %}" class="chat-link">
+    <div class="chat-card">
+        <div class="chat-avatar">
+            {% if chat_item.avatar %}
+                <img src="{{ chat_item.avatar }}" alt="Avatar">
+            {% else %}
+                <div class="avatar-placeholder">
+                    {{ chat_item.initial|default:"U" }} 
+                </div>
+            {% endif %}
+        </div>
+        <div class="chat-info">
+            <h3>{{ chat_item.chat.property.title }}</h3>
+            <p>{{ chat_item.last_message|truncatechars:50 }}</p>
+        </div>
+        </a>
+
+        <div class="chat-actions">
+            <form action="{% url 'delete_chat' chat_item.chat.id %}" method="post" class="delete-form">
+                {% csrf_token %}
+                <i class="fas fa-trash delete-button" onclick="confirmDelete(event, this.closest('form'))"></i>
+            </form>
+        </div>
+    </div>
+    {% empty %}
+    <p>Нет доступных чатов.</p>
+    {% endfor %}
+</div>
+<script>
+    function confirmDelete(event, form) {
+        event.preventDefault();
+        if (confirm('Вы уверены, что хотите удалить этот чат?')) {
+            form.submit();
+        }
+    }
+</script>
+</body>
+</html>

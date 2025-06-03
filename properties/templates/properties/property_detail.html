@@ -1,0 +1,202 @@
+{% load static %}
+{% load django_bootstrap5 %}
+
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'properties/fontawesome/css/all.min.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'properties/scss/prop_detail.scss' %}">
+    <title>Список недвижимости</title>   
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=3a75c004-4422-45d2-9791-86e4585caaaf&lang=en_US" type="text/javascript">
+    </script>
+</head>
+<body>
+{% include 'properties/elements/header.html' %}
+
+    <div class="container">
+        <h2 class="title">{{ property.title }}</h2>
+
+        <div class="property-image-container">
+            {% if property.images.all %}
+                <div id="carouselImages" class="carousel">
+                    <div class="carousel-inner">
+                        {% for image in property.images.all %}
+                            <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                <img src="{{ image.image.url }}" alt="Property Image {{ forloop.counter }}" class="property-image">
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <button id="carouselPrev" class="carousel-control carousel-control-prev">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button id="carouselNext" class="carousel-control carousel-control-next">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    
+                    <div class="carousel-indicators">
+                        {% for image in property.images.all %}
+                            <span class="carousel-indicator {% if forloop.first %}active{% endif %}" data-index="{{ forloop.counter0 }}"></span>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
+                <img src="{% static 'properties/images/default.jpg' %}" alt="No Image Available" class="property-image">
+            {% endif %}
+        </div>
+        
+        <p><strong>Цена:</strong> ${{ property.price }}</p>
+        <p><strong>Адрес:</strong> {{ property.location }}</p>
+        <p><strong>Площадь:</strong> {{ property.size }} м²</p>
+        <p><strong>Номер продавца:</strong> {{ property.owner.phone_number }}</p>
+        <p><strong>Email продавца:</strong> {{ property.owner.email }}</p>
+        <p><strong class="description">Описание:</strong> {{ property.description }}</p>
+        {% if user.is_authenticated %}
+        <form method="POST" id="chat-form">
+            {% csrf_token %}
+            <button type="submit" name="create_chat" class="btn btn-primary mt-3 start-chat">
+                Написать продавцу
+            </button>
+        </form>
+        {% else %}
+        <p>Для начала чата необходимо войти в аккаунт.</p>
+        {% endif %}
+        <div class="tags">
+        {% for tag in property.get_tags_list %}
+            <span class="tag">{{ tag }}</span>
+        {% endfor %}
+        </div>
+        <div id="map" style="height: 600px; width: 100%; position: relative; border-radius: 20px; margin-top: 2%; "></div>
+
+    </div>
+    <div id="warning-message" class="warning-message">
+        Вы не можете начать чат с собой!
+    </div>
+
+<div class="footer">
+    {% include 'properties/elements/footer.html' %}
+</div>
+
+<script>
+    {% if user == property.owner %}
+    document.getElementById("chat-form").addEventListener("submit", function(event) {
+        event.preventDefault();
+        var warningMessage = document.getElementById("warning-message");
+        warningMessage.classList.add("show-warning");
+        setTimeout(function() {
+            warningMessage.classList.remove("show-warning");
+        }, 5000);
+    });
+    {% endif %}
+
+    ymaps.ready(initMap);
+
+    function initMap() {
+        const address = "{{ property.location|escapejs }}";
+        const myMap = new ymaps.Map("map", {
+            center: [55.76, 37.64],
+            zoom: 10
+        });
+    
+        ymaps.geocode(address).then(function (res) {
+            if (res.geoObjects.getLength()) {
+                const firstGeoObject = res.geoObjects.get(0);
+                const coords = firstGeoObject.geometry.getCoordinates();
+                const bounds = firstGeoObject.properties.get('boundedBy');
+    
+                myMap.geoObjects.add(firstGeoObject);
+                myMap.setBounds(bounds, { checkZoomRange: true });
+    
+                firstGeoObject.properties.set('balloonContent', address);
+                firstGeoObject.balloon.open();
+            } else {
+                alert("Адрес не найден: " + address);
+            }
+        }, function (err) {
+            console.error("Ошибка геокодирования:", err);
+            alert("Ошибка геокодирования");
+        });
+        document.querySelector("#map").style.overflow = "hidden";
+        document.querySelector("#map").style.boxShadow = "0 4px 20px rgba(0,0,0,0.2)";
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const carouselImages = document.getElementById('carouselImages');
+        if (!carouselImages) return;
+        
+        const carouselItems = carouselImages.querySelectorAll('.carousel-item');
+        if (carouselItems.length <= 1) return;
+        
+        const prevBtn = document.getElementById('carouselPrev');
+        const nextBtn = document.getElementById('carouselNext');
+        const indicators = document.querySelectorAll('.carousel-indicator');
+        let currentIndex = 0;
+        
+        function showSlide(index) {
+            if (index < 0) index = carouselItems.length - 1;
+            if (index >= carouselItems.length) index = 0;
+            
+            carouselItems.forEach(item => item.classList.remove('active'));
+            indicators.forEach(indicator => indicator.classList.remove('active'));
+            
+            carouselItems[index].classList.add('active');
+            indicators[index].classList.add('active');
+            currentIndex = index;
+        }
+        
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                showSlide(currentIndex - 1);
+            });
+        }
+        
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                showSlide(currentIndex + 1);
+            });
+        }
+        
+        indicators.forEach(indicator => {
+            indicator.addEventListener('click', () => {
+                const index = parseInt(indicator.getAttribute('data-index'));
+                showSlide(index);
+            });
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                showSlide(currentIndex - 1);
+            } else if (e.key === 'ArrowRight') {
+                showSlide(currentIndex + 1);
+            }
+        });
+        
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        carouselImages.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+        
+        carouselImages.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+        
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            if (touchEndX < touchStartX - swipeThreshold) {
+                showSlide(currentIndex + 1);
+            } else if (touchEndX > touchStartX + swipeThreshold) {
+                showSlide(currentIndex - 1);
+            }
+        }
+    });
+</script>
+</body>
+</html>

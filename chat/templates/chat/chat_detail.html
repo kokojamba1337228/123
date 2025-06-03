@@ -1,0 +1,149 @@
+{% load static %}
+{% load django_bootstrap5 %}
+
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'chat/fontawesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'chat/scss/chat_detail.scss' %}"> {# This SCSS will now be used by both #}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <title>Чат о {{ chat.property.title }}</title>
+</head>
+
+<body>
+    {% include 'properties/elements/header.html' %}
+
+    <div class="chat-container">
+        <h2>Чат о {{ chat.property.title }}</h2>
+
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+        <div class="messages" id="chat-messages-container">
+            {# Messages will be loaded by JavaScript #}
+        </div>
+
+        <div class="send-container">
+            <textarea id="chat-input" placeholder="Введите ваше сообщение..." rows="3"></textarea>
+            <button id="send-button" class="btn btn-primary">Отправить</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatMessagesContainer = document.getElementById('chat-messages-container');
+            const chatInput = document.getElementById('chat-input');
+            const sendButton = document.getElementById('send-button');
+            const chat_id = {{ chat.id }};
+
+            function getCSRFToken() {
+                let token = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                return token;
+            }
+
+            function appendMessage(senderName, content, created_at, isSentByCurrentUser, senderAvatar) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message');
+                messageDiv.classList.add(isSentByCurrentUser ? 'sent' : 'received');
+
+                const avatarDiv = document.createElement('div');
+                avatarDiv.classList.add('chat-avatar'); // Use chat-avatar class from chat_detail.scss
+
+                if (senderAvatar) {
+                    const img = document.createElement('img');
+                    img.src = senderAvatar;
+                    img.alt = senderName;
+                    avatarDiv.appendChild(img);
+                } else {
+                    const placeholder = document.createElement('div');
+                    placeholder.classList.add('avatar-placeholder');
+                    placeholder.textContent = senderName ? senderName[0].toUpperCase() : 'U';
+                    avatarDiv.appendChild(placeholder);
+                }
+
+                const contentDiv = document.createElement('div');
+                contentDiv.classList.add('message-content'); // New class for message content
+
+                const senderSpan = document.createElement('strong');
+                senderSpan.textContent = senderName + ': ';
+                contentDiv.appendChild(senderSpan);
+
+                const textNode = document.createTextNode(content);
+                contentDiv.appendChild(textNode);
+
+                const timestampDiv = document.createElement('small');
+                timestampDiv.textContent = created_at;
+                contentDiv.appendChild(timestampDiv);
+
+                messageDiv.appendChild(avatarDiv);
+                messageDiv.appendChild(contentDiv);
+                chatMessagesContainer.appendChild(messageDiv);
+                scrollToBottom();
+            }
+
+            function scrollToBottom() {
+                chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+            }
+
+            function fetchMessages() {
+                fetch(`{% url 'get_chat_messages' chat.id %}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        chatMessagesContainer.innerHTML = ''; // Clear existing messages
+                        data.messages.forEach(msg => {
+                            const senderName = msg.sender__first_name || msg.sender__username;
+                            const isSentByCurrentUser = msg.sender__id === {{ request.user.id }};
+                            appendMessage(senderName, msg.content, msg.created_at, isSentByCurrentUser, msg.sender_avatar);
+                        });
+                        scrollToBottom();
+                    })
+                    .catch(error => console.error('Ошибка при получении сообщений:', error));
+            }
+
+            function sendMessage() {
+                const content = chatInput.value.trim();
+                if (!content) return;
+
+                fetch(`{% url 'send_message' chat.id %}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken(),
+                    },
+                    body: JSON.stringify({ content: content })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 403) {
+                            alert('Для отправки сообщений необходимо войти в систему.');
+                        }
+                        throw new Error('Ошибка отправки сообщения');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'ok') {
+                        chatInput.value = ''; // Clear input
+                        fetchMessages(); // Refresh messages
+                    }
+                })
+                .catch(error => console.error('Ошибка при отправке сообщения:', error));
+            }
+
+            sendButton.addEventListener("click", sendMessage);
+
+            chatInput.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            fetchMessages(); 
+            setInterval(fetchMessages, 3000); 
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+{% load static %}
+{% load django_bootstrap5 %}
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'chat/fontawesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'chat/scss/chat_list.scss' %}"> 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <title>Панель администратора чатов</title>
+</head>
+<body>
+    {% include 'properties/elements/header.html' %}
+
+    <h1 style="text-align:center; margin-top: 20px;">Чаты поддержки с пользователями</h1>
+
+    <div class="chat-list-container">
+      <h2 style="margin-top: 10px; margin-bottom: 20px;">Активные чаты</h2>
+
+      {% for chat in chats %}
+        <div class="chat-card" style="margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+            <a href="{% url 'admin_chat_detail' chat.id %}" style="text-decoration: none; color: inherit; flex-grow: 1;">
+                {{ chat.user.get_full_name }} ({{ chat.user.email }})
+            </a>
+            <form method="post" action="{% url 'admin_delete_support_chat' chat.id %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="delete-button" onclick="return confirm('Вы уверены, что хотите удалить этот чат и все его сообщения? Это действие необратимо.');">
+                    <i class="fas fa-trash"></i> Удалить
+                </button>
+            </form>
+        </div>
+    {% empty %}
+        <p>Нет активных чатов поддержки.</p>
+      {% endfor %}
+    </div>
+</body>
+</html>
